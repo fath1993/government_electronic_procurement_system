@@ -1,0 +1,7 @@
+﻿Pillow
+latest-user-agents
+lxml
+pathlib
+pytz
+requests
+selenium==4.7.2
