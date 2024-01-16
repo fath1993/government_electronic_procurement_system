@@ -2,12 +2,9 @@ import base64
 import os
 import time
 import jdatetime
-from PIL import ImageOps, ImageEnhance
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-import pathlib
 import sys
-
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
@@ -27,7 +24,6 @@ def get_base_path():
 
 path = get_base_path()
 
-print(path)
 executable_path = f'{path}\\chromedriver\\chromedriver.exe'
 
 
@@ -35,15 +31,20 @@ def retrieve_data_from_the_txt():
     data_list = []
     with open(f'{path}\\#starting_list.txt', 'r', encoding='utf-8') as f:
         lines = f.readlines()
+        addon_date = ''
+        i = 0
         for line in lines:
-            line = str(line)
-            line = line.replace('\n', '')
-            line = line.split('|')
-            try:
-                data_list.append(line)
-            except:
-                pass
-    print(data_list)
+            if i == 0:
+                addon_date = line
+            else:
+                line = f'{line}|{addon_date}'
+                line = line.replace('\n', '')
+                line = line.split('|')
+                try:
+                    data_list.append(line)
+                except:
+                    pass
+            i += 1
     return data_list
 
 
@@ -109,7 +110,8 @@ def scrap_data():
                     item.click()
                     break
         except Exception as e:
-            print(str(e))
+            # print(str(e))
+            pass
         try:
             WebDriverWait(driver, 60).until(
                 EC.presence_of_element_located((By.ID, 'organizationSelectionFrame')))
@@ -175,185 +177,177 @@ def scrap_data():
             result_table_details_item = needAdvancedSearchDisplayTableId.find_elements(By.TAG_NAME, 'a')
             for item in result_table_details_item:
                 try:
-                    print(int(item.text))
+                    # print(int(item.text))
                     onclick_list.append([organization, int(item.text), item.get_attribute('onclick')])
                 except:
                     pass
             time.sleep(5)
         except Exception as e:
-            print(str(e))
+            # print(str(e))
+            pass
     time.sleep(5)
-    for item in onclick_list:
-        print(item)
 
     main_window_handle = driver.current_window_handle
+    not_completed_list = []
     for onclick_href in onclick_list:
-        purchase_need_dto = None
-        purchase_organization_name = None
-        deadline_duration_date_minus_1_day = None
-        extra_docs_btn_script = None
-        print_btn_script = None
-        driver.execute_script(onclick_href[2])
-        WebDriverWait(driver, 60).until(
-            EC.presence_of_element_located((By.TAG_NAME, 'form')))
-        purchase_need_view_form = driver.find_element(By.TAG_NAME, 'form')
-        purchase_need_view_form_inputs = purchase_need_view_form.find_elements(By.TAG_NAME, 'input')
-        for purchase_need_view_form_input in purchase_need_view_form_inputs:
+        try:
+            purchase_need_dto = None
+            purchase_organization_name = None
+            deadline_duration_date_minus_1_day = None
+            extra_docs_btn_script = None
+            print_btn_script = None
+            driver.execute_script(onclick_href[2])
+            WebDriverWait(driver, 60).until(
+                EC.presence_of_element_located((By.TAG_NAME, 'form')))
+            purchase_need_view_form = driver.find_element(By.TAG_NAME, 'form')
+            purchase_need_view_form_inputs = purchase_need_view_form.find_elements(By.TAG_NAME, 'input')
+            for purchase_need_view_form_input in purchase_need_view_form_inputs:
+                try:
+                    purchase_need_view_form_input_name = str(purchase_need_view_form_input.get_attribute('name'))
+                    if purchase_need_view_form_input_name == 'purchaseNeedDto.needNo':
+                        purchase_need_dto = purchase_need_view_form_input.get_attribute('value')
+                        print(purchase_need_dto)
+                    elif purchase_need_view_form_input_name == 'purchaseNeedDto.purchaseRequestDto.organization.name':
+                        purchase_organization_name = purchase_need_view_form_input.get_attribute('value')
+                        print(purchase_organization_name)
+                    elif purchase_need_view_form_input_name == 'deadlineDurationDateStr':
+                        deadline_duration_date = purchase_need_view_form_input.get_attribute('value')
+                        deadline_duration_date = str(deadline_duration_date)
+                        deadline_duration_date = deadline_duration_date.split('/')
+                        deadline_duration_date = jdatetime.datetime(year=int(deadline_duration_date[0]),
+                                                                    month=int(deadline_duration_date[1]),
+                                                                    day=int(deadline_duration_date[2]))
+                        deadline_duration_date_minus_1_day = deadline_duration_date - jdatetime.timedelta(days=1)
+                        deadline_duration_date_minus_1_day = deadline_duration_date_minus_1_day.strftime('%Y-%m-%d')
+                        print(deadline_duration_date_minus_1_day)
+                except:
+                    pass
+                try:
+                    purchase_need_view_form_input_on_click = str(purchase_need_view_form_input.get_attribute('onclick'))
+                    if purchase_need_view_form_input_on_click == 'return anonymousShowAppendix()':
+                        extra_docs_btn_script = purchase_need_view_form_input.get_attribute('onclick')
+                    elif purchase_need_view_form_input_on_click == 'callPrint()':
+                        print_btn_script = purchase_need_view_form_input.get_attribute('onclick')
+                except:
+                    pass
+            WebDriverWait(driver, 60).until(
+                EC.presence_of_element_located((By.ID, 'purchaseNeedDto.needName')))
+            details_summary_textarea = purchase_need_view_form.find_element(By.ID, 'purchaseNeedDto.needName')
+            details_summary = details_summary_textarea.text
+            print(details_summary)
+            folder_name = f'{purchase_organization_name}_{purchase_need_dto}_{deadline_duration_date_minus_1_day}'
+            folder_path = f'{path}\\archive\\{folder_name}'
             try:
-                purchase_need_view_form_input_name = str(purchase_need_view_form_input.get_attribute('name'))
-                if purchase_need_view_form_input_name == 'purchaseNeedDto.needNo':
-                    purchase_need_dto = purchase_need_view_form_input.get_attribute('value')
-                    print(purchase_need_dto)
-                elif purchase_need_view_form_input_name == 'purchaseNeedDto.purchaseRequestDto.organization.name':
-                    purchase_organization_name = purchase_need_view_form_input.get_attribute('value')
-                    print(purchase_organization_name)
-                elif purchase_need_view_form_input_name == 'deadlineDurationDateStr':
-                    deadline_duration_date = purchase_need_view_form_input.get_attribute('value')
-                    deadline_duration_date = str(deadline_duration_date)
-                    deadline_duration_date = deadline_duration_date.split('/')
-                    deadline_duration_date = jdatetime.datetime(year=int(deadline_duration_date[0]),
-                                                                month=int(deadline_duration_date[1]),
-                                                                day=int(deadline_duration_date[2]))
-                    deadline_duration_date_minus_1_day = deadline_duration_date - jdatetime.timedelta(days=1)
-                    deadline_duration_date_minus_1_day = deadline_duration_date_minus_1_day.strftime('%Y-%m-%d')
-                    print(deadline_duration_date_minus_1_day)
+                os.mkdir(folder_path)
             except:
                 pass
+            screenshot_path = f'{folder_path}\\{purchase_need_dto}.jpg'
+            driver.save_screenshot(screenshot_path)
+            main_window_handle = driver.current_window_handle
+            driver.execute_script(print_btn_script)
             try:
-                purchase_need_view_form_input_on_click = str(purchase_need_view_form_input.get_attribute('onclick'))
-                if purchase_need_view_form_input_on_click == 'return anonymousShowAppendix()':
-                    extra_docs_btn_script = purchase_need_view_form_input.get_attribute('onclick')
-                elif purchase_need_view_form_input_on_click == 'callPrint()':
-                    print_btn_script = purchase_need_view_form_input.get_attribute('onclick')
-            except:
+                wait = WebDriverWait(driver, 15)
+                new_window_handle = None
+                # Wait for the new window handle to be different from the main window handle
+                wait.until(lambda driver: len(driver.window_handles) > 1)
+                for handle in driver.window_handles:
+                    if handle != main_window_handle:
+                        new_window_handle = handle
+                        break
+                driver.switch_to.window(new_window_handle)
+                params = {
+                    'transferMode': 'ReturnAsBase64',
+                    'paperWidth': 8.27,  # A4 width in inches
+                    'paperHeight': 11.69,  # A4 height in inches
+                    'marginTop': 0,
+                    'marginBottom': 0,
+                    'marginLeft': 0,
+                    'marginRight': 0,
+                    'printBackground': True,  # Ensure background colors and images are included
+                    'preferCSSPageSize': True,  # Use the CSS page size when specified
+                    'displayHeaderFooter': False,  # Disable header and footer
+                    'emulateMedia': 'print',  # Emulate print media type for better compatibility
+                    'headerTemplate': '',  # Customize header if needed
+                    'footerTemplate': '',  # Customize footer if needed
+                    'scale': 1,  # Adjust scale if needed
+                }
+                result = driver.execute_cdp_cmd('Page.printToPDF', params)
+                pdf_content_base64 = result['data']
+                pdf_content = base64.b64decode(pdf_content_base64)
+                pdf_file_path = f'{folder_path}\\{purchase_need_dto}.pdf'
+                with open(pdf_file_path, 'wb') as pdf_file:
+                    pdf_file.write(pdf_content)
+                time.sleep(1)
+                driver.close()
+                driver.switch_to.window(main_window_handle)
+            except Exception as e:
+                # print(str(e))
                 pass
-        WebDriverWait(driver, 60).until(
-            EC.presence_of_element_located((By.ID, 'purchaseNeedDto.needName')))
-        details_summary_textarea = purchase_need_view_form.find_element(By.ID, 'purchaseNeedDto.needName')
-        details_summary = details_summary_textarea.text
-        print(details_summary)
-        folder_name = f'{purchase_organization_name}_{purchase_need_dto}_{deadline_duration_date_minus_1_day}'
-        folder_path = f'{path}\\archive\\{folder_name}'
-        try:
-            os.mkdir(folder_path)
-        except:
-            pass
-        screenshot_path = f'{folder_path}\\{purchase_need_dto}.jpg'
-        driver.save_screenshot(screenshot_path)
-        main_window_handle = driver.current_window_handle
-        driver.execute_script(print_btn_script)
-        try:
-            wait = WebDriverWait(driver, 15)
+
+            driver.execute_script(extra_docs_btn_script)
+            wait = WebDriverWait(driver, 10)
             new_window_handle = None
-            # Wait for the new window handle to be different from the main window handle
             wait.until(lambda driver: len(driver.window_handles) > 1)
             for handle in driver.window_handles:
                 if handle != main_window_handle:
                     new_window_handle = handle
                     break
             driver.switch_to.window(new_window_handle)
-            params = {
-                'transferMode': 'ReturnAsBase64',
-                'paperWidth': 8.27,  # A4 width in inches
-                'paperHeight': 11.69,  # A4 height in inches
-                'marginTop': 0,
-                'marginBottom': 0,
-                'marginLeft': 0,
-                'marginRight': 0,
-                'printBackground': True,  # Ensure background colors and images are included
-                'preferCSSPageSize': True,  # Use the CSS page size when specified
-                'displayHeaderFooter': False,  # Disable header and footer
-                'emulateMedia': 'print',  # Emulate print media type for better compatibility
-                'headerTemplate': '',  # Customize header if needed
-                'footerTemplate': '',  # Customize footer if needed
-                'scale': 1,  # Adjust scale if needed
-            }
-            result = driver.execute_cdp_cmd('Page.printToPDF', params)
-            pdf_content_base64 = result['data']
-            pdf_content = base64.b64decode(pdf_content_base64)
-            pdf_file_path = f'{folder_path}\\{purchase_need_dto}.pdf'
-            with open(pdf_file_path, 'wb') as pdf_file:
-                pdf_file.write(pdf_content)
-            time.sleep(1)
+            WebDriverWait(driver, 60).until(
+                EC.presence_of_element_located((By.ID, 'btnShowFile')))
+            extra_docs_btn_show_file = driver.find_element(By.ID, 'btnShowFile')
+            extra_docs_btn_show_file_script = extra_docs_btn_show_file.get_attribute('onclick')
+            WebDriverWait(driver, 60).until(
+                EC.presence_of_element_located((By.ID, 'mainContent')))
+            extra_docs_main_content = driver.find_element(By.ID, 'mainContent')
+            extra_docs_inputs = extra_docs_main_content.find_elements(By.TAG_NAME, 'input')
+            doc_select_scripts = []
+            for extra_docs_input in extra_docs_inputs:
+                try:
+                    extra_docs_input_on_click = extra_docs_input.get_attribute('onclick')
+                    if str(extra_docs_input_on_click).find('select_item') != -1:
+                        doc_select_scripts.append(extra_docs_input_on_click)
+                except:
+                    pass
+            print(doc_select_scripts)
+            for doc_select_script in doc_select_scripts:
+                driver.execute_script(doc_select_script)
+                time.sleep(1)
+                driver.execute_script(extra_docs_btn_show_file_script)
             driver.close()
             driver.switch_to.window(main_window_handle)
-        except Exception as e:
-            print(str(e))
-
-        driver.execute_script(extra_docs_btn_script)
-        wait = WebDriverWait(driver, 10)
-        new_window_handle = None
-        wait.until(lambda driver: len(driver.window_handles) > 1)
-        for handle in driver.window_handles:
-            if handle != main_window_handle:
-                new_window_handle = handle
-                break
-        driver.switch_to.window(new_window_handle)
-        WebDriverWait(driver, 60).until(
-            EC.presence_of_element_located((By.ID, 'btnShowFile')))
-        extra_docs_btn_show_file = driver.find_element(By.ID, 'btnShowFile')
-        extra_docs_btn_show_file_script = extra_docs_btn_show_file.get_attribute('onclick')
-        WebDriverWait(driver, 60).until(
-            EC.presence_of_element_located((By.ID, 'mainContent')))
-        extra_docs_main_content = driver.find_element(By.ID, 'mainContent')
-        extra_docs_inputs = extra_docs_main_content.find_elements(By.TAG_NAME, 'input')
-        doc_select_scripts = []
-        for extra_docs_input in extra_docs_inputs:
-            try:
-                extra_docs_input_on_click = extra_docs_input.get_attribute('onclick')
-                if str(extra_docs_input_on_click).find('select_item') != -1:
-                    doc_select_scripts.append(extra_docs_input_on_click)
-            except:
-                pass
-        print(doc_select_scripts)
-        for doc_select_script in doc_select_scripts:
-            driver.execute_script(doc_select_script)
-            time.sleep(1)
-            driver.execute_script(extra_docs_btn_show_file_script)
-        driver.close()
-        driver.switch_to.window(main_window_handle)
-        time.sleep(30)
-        source_folder = f'{path}\\downloads'
-        files_to_move = os.listdir(source_folder)
-        for file_name in files_to_move:
-            source_file_path = f'{source_folder}\\{file_name}'
-            try:
-                os.replace(source_file_path, f"{folder_path}/{file_name}")
-                os.remove(source_file_path)
-            except:
-                pass
+            time.sleep(20)
+            source_folder = f'{path}\\downloads'
+            files_to_move = os.listdir(source_folder)
+            for file_name in files_to_move:
+                source_file_path = f'{source_folder}\\{file_name}'
+                try:
+                    os.replace(source_file_path, f"{folder_path}/{file_name}")
+                    os.remove(source_file_path)
+                except:
+                    pass
+        except:
+            driver.switch_to.window(main_window_handle)
+            source_folder = f'{path}\\downloads'
+            files_to_move = os.listdir(source_folder)
+            for file_name in files_to_move:
+                source_file_path = f'{source_folder}\\{file_name}'
+                try:
+                    os.remove(source_file_path)
+                except:
+                    pass
+            not_completed_list.append(onclick_href)
+            print(f'problem happens during handling {onclick_href}')
+            time.sleep(5)
+        print('-------------')
     time.sleep(10)
+    try:
+        with open(f'{path}\\not-completed-list.txt', 'w') as not_completed_file:
+            for file_name in not_completed_list:
+                not_completed_file.write(f'{file_name}')
+    except:
+        pass
     driver.quit()
-
-
-def captcha_solver():
-    # Import the necessary libraries
-    from PIL import Image
-    import pytesseract
-
-    # If you're on windows, you will need to point pytesseract to the path
-    # where you installed Tesseract
-    pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
-    # Open the image file
-    # replace 'test.png' with your image file
-    img = Image.open(f'{path}\\captcha_test\\Cap.gif').convert('RGB')
-    # Enhance the sharpness
-    sharpness = ImageEnhance.Sharpness(img)
-    sharpened_image = sharpness.enhance(2.0)  # You can adjust the enhancement factor
-
-    # Convert to grayscale
-    bw_image = ImageOps.grayscale(sharpened_image)
-
-    # Enhance the contrast
-    contrast = ImageEnhance.Contrast(bw_image)
-    high_contrast_image = contrast.enhance(10.0)
-
-    high_contrast_image.show()
-    # Use pytesseract to convert the image data to text
-    text = pytesseract.image_to_string(img)
-
-    print(text)
 
 
 def folder_maker():
@@ -368,8 +362,6 @@ def folder_maker():
 
 
 try:
-    print(f'data list contains:')
-    retrieve_data_from_the_txt()
     while True:
         print('please choose a number')
         print('1. scrap data')
@@ -380,12 +372,6 @@ try:
                 if number == 1:
                     try:
                         scrap_data()
-                    except Exception as e:
-                        print(str(e))
-                        print('need to create login way first')
-                elif number == 2:
-                    try:
-                        captcha_solver()
                     except Exception as e:
                         print(str(e))
             else:
