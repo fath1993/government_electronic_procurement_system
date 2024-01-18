@@ -234,8 +234,18 @@ def scrap_data():
                 EC.presence_of_element_located((By.ID, 'purchaseNeedDto.needName')))
             details_summary_textarea = purchase_need_view_form.find_element(By.ID, 'purchaseNeedDto.needName')
             details_summary = details_summary_textarea.text
-            print(details_summary)
-            folder_name = f'{purchase_organization_name}_{purchase_need_dto}_{deadline_duration_date_minus_1_day}'
+            if details_summary:
+                details_summary = str(details_summary)[:60]
+            else:
+                details_summary = 'Unknown'
+            allowed_char = 'ابپتسجچحخدذرزژسشصضطظعغفقکگلمنوهیabcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+            details_summary_x = ''
+            for char in details_summary:
+                if char in allowed_char:
+                    details_summary_x += char
+                else:
+                    details_summary_x += ' '
+            folder_name = f'{purchase_need_dto}_{deadline_duration_date_minus_1_day}'
             folder_path = f'{path}\\archive\\{folder_name}'
             try:
                 os.mkdir(folder_path)
@@ -243,7 +253,6 @@ def scrap_data():
                 pass
             screenshot_path = f'{folder_path}\\{purchase_need_dto}.jpg'
             driver.save_screenshot(screenshot_path)
-            main_window_handle = driver.current_window_handle
             driver.execute_script(print_btn_script)
             try:
                 wait = WebDriverWait(driver, 15)
@@ -283,7 +292,6 @@ def scrap_data():
             except Exception as e:
                 # print(str(e))
                 pass
-
             driver.execute_script(extra_docs_btn_script)
             wait = WebDriverWait(driver, 10)
             new_window_handle = None
@@ -309,33 +317,37 @@ def scrap_data():
                         doc_select_scripts.append(extra_docs_input_on_click)
                 except:
                     pass
-            print(doc_select_scripts)
-            for doc_select_script in doc_select_scripts:
-                driver.execute_script(doc_select_script)
-                time.sleep(1)
-                driver.execute_script(extra_docs_btn_show_file_script)
-            driver.close()
-            driver.switch_to.window(main_window_handle)
-            time.sleep(20)
             source_folder = f'{path}\\downloads'
-            files_to_move = os.listdir(source_folder)
-            for file_name in files_to_move:
-                source_file_path = f'{source_folder}\\{file_name}'
+            files_to_delete_list = os.listdir(source_folder)
+            for file_to_delete in files_to_delete_list:
                 try:
-                    os.replace(source_file_path, f"{folder_path}/{file_name}")
-                    os.remove(source_file_path)
+                    os.remove(f'{source_folder}\\{file_to_delete}')
+                    time.sleep(5)
                 except:
                     pass
+            for doc_select_script in doc_select_scripts:
+                driver.execute_script(doc_select_script)
+                time.sleep(5)
+                driver.execute_script(extra_docs_btn_show_file_script)
+                time.sleep(5)
+                files_to_move = os.listdir(source_folder)
+                for file_name in files_to_move:
+                    source_file_path = f'{source_folder}\\{file_name}'
+                    try:
+                        os.replace(source_file_path, f"{folder_path}/{file_name}")
+                        os.remove(source_file_path)
+                        time.sleep(5)
+                    except:
+                        pass
+            driver.close()
+            driver.switch_to.window(main_window_handle)
+            new_folder_name = f'{purchase_need_dto}_{deadline_duration_date_minus_1_day}_{purchase_organization_name}_{details_summary_x}'
+            new_folder_path = f'{path}\\archive\\{new_folder_name}'
+            os.rename(folder_path, new_folder_path)
+            time.sleep(5)
         except:
             driver.switch_to.window(main_window_handle)
             source_folder = f'{path}\\downloads'
-            files_to_move = os.listdir(source_folder)
-            for file_name in files_to_move:
-                source_file_path = f'{source_folder}\\{file_name}'
-                try:
-                    os.remove(source_file_path)
-                except:
-                    pass
             not_completed_list.append(onclick_href)
             print(f'problem happens during handling {onclick_href}')
             time.sleep(5)
