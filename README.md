@@ -1,6 +1,6 @@
-# Python Django Selenium Automation for Government Electronic Procurement System
+# Python Selenium Automation for Government Electronic Procurement System
 
-This project is a web application that automates interactions with a government electronic procurement system using Python, Django, and Selenium. The goal is to streamline the procurement process, making it more efficient and user-friendly for users involved in government procurement activities.
+This project utilizes Python and Selenium to automate interactions with a government electronic procurement system. The automation aims to streamline procurement tasks, making the process more efficient and reducing the need for manual input.
 
 ## Table of Contents
 - [Features](#features)
@@ -11,11 +11,11 @@ This project is a web application that automates interactions with a government 
 
 ## Features
 
-- **Automated Browsing**: Use Selenium to automate tasks such as logging in, submitting bids, and retrieving documents from the procurement system.
-- **Django Interface**: A user-friendly Django web interface to manage automation tasks and monitor processes.
-- **Scheduled Automation**: Schedule automated tasks to run at specified intervals for regular procurement activities.
-- **Error Handling**: Implement robust error handling to manage exceptions and provide feedback.
-- **Logging and Reporting**: Maintain logs of automated actions and generate reports for analysis.
+- **Automated Login**: Use Selenium to log into the government procurement system automatically.
+- **Bid Submission**: Automate the process of submitting bids and necessary documentation.
+- **Data Retrieval**: Fetch procurement-related data and documents from the system effortlessly.
+- **Error Handling**: Implement mechanisms to handle exceptions and notify users of issues during automation.
+- **Logging**: Maintain logs of actions taken during automation for audit and review purposes.
 
 ## Installation
 
@@ -51,28 +51,18 @@ To run this project locally, follow these steps:
     pip install -r requirements.txt
     ```
 
-6. Set up your database:
-    ```bash
-    python manage.py migrate
-    ```
-
-7. Create a superuser for the admin interface (optional):
-    ```bash
-    python manage.py createsuperuser
-    ```
-
-8. Start the development server:
-    ```bash
-    python manage.py runserver
-    ```
+6. Set up any additional configurations needed for Selenium, such as downloading the appropriate WebDriver for your browser.
 
 ## Usage
 
-Once the server is running, visit `http://127.0.0.1:8000/` in your browser to access the procurement automation service.
+To use the automation script:
 
-- **Login**: Authenticate using your credentials to access the automation features.
-- **Configure Automation**: Set up automation tasks, specifying the actions to be automated within the procurement system.
-- **Monitor Automation**: View logs and reports to track the performance and results of automated tasks.
+1. Ensure the development server is running if applicable.
+2. Run the main automation script:
+    ```bash
+    python main.py
+    ```
+3. Follow the prompts in the console or review the script documentation for specific configurations.
 
 ## Contributing
 
